@@ -8,4 +8,7 @@ class NormalEmissionHMM:
         self.hmm.baumWelch(ghmm.EmissionSequence(self.sigma, sequence))
     
     def viterbi(self, sequence):
-        return self.hmm.viterbi(ghmm.EmissionSequence(self.sigma, sequence))
+        return self.hmm.viterbi(ghmm.EmissionSequence(self.sigma, sequence))[0]
+
+    def __str__(self):
+        return str(self.hmm)
