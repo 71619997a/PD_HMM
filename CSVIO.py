@@ -1,4 +1,5 @@
-"""This module has file io functions designed for reading from and writing to CSV files."""
+"""This module has file io functions designed for reading from and writing to
+CSV files."""
 
 
 def read_csv(filename):
@@ -19,7 +20,7 @@ def write_csv(filename, list_):
     filename -- filename of CSV file.
     list -- 2D list of data to be written.
     """
-    lines = map(lambda r: ",".join(r), list_)
+    lines = map(lambda r: ",".join(r).strip(), list_)
     text = "\n".join(lines)
     with open(filename, 'w') as f:
         f.write(text)

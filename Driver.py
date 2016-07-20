@@ -2,17 +2,16 @@
 from random import random
 from datetime import datetime as dt
 import numpy as np
-from NormalEmissionHMM import NormalEmissionHMM
+from GMMEmissionHMM import GMMEmissionHMM
 from CSVIO import *
+from FFT import *
+from data import *
 
+np.set_printoptions(threshold=np.inf)
 
 def test0():
-    """Tests NormalEmissionHMM class."""
-    transition = [[0.6, 0.3, 0.1], [0.2, 0.7, 0.1], [0.15, 0.1, 0.75]]
-    emission = [[1, 3, 5], [3, 5, 1], [5, 1, 3]]  # means, 3 emissions / state
-    initial = [1, 0, 0]  # start in state 0
-    hmm = NormalEmissionHMM(transition, emission, np.zeros((3, 3)), initial)
-    print hmm
+    """Tests GMMEmissionHMM class."""
+    hmm = GMMEmissionHMM(3, 3)
     rand_train = lambda: [random() * 6, random() * 4 + 1, random() * 10 - 2]
     train_seq = [rand_train() for i in range(3000)]  # 3000 triplets
     hmm.train(train_seq)
@@ -24,71 +23,70 @@ def test0():
     score_seq = [rand_train() for i in range(5)]
     print hmm.score(score_seq)
 
-# Averages the data, 50ms is very small of a window
-
-
-def condense_data(in_file, out_file, num_condense):
-    """Widen window of observation of data by joining together a number of windows.
-
-    Arguments:
-    in_file -- the input data file, as in_data.csv is formatted
-    out_file -- the output data file
-    num_condense -- the number of windows to condense
-    Returns the array of out data.
+def test1():
+    """states:
+    0. rest
+    1. standing
+    2. walking
+        normal
+        counting
+        narrow
+    3. up stairs
+    4. down stairs
+    5. left finger to nose
+    6. right finger to nose
+    7. alternating RH movement
+    8. alternating LH movement
+    9. writing
+    10. typing
+    11. assembling
+    12. drinking
+    13. organize
+    14. folding
+    15. sitting
     """
-    list_ = read_csv(in_file)
-    list_ = list_[1:]  # first line is garbage
-    ret = []
-    for i in range(0, len(list_) - num_condense, num_condense):
-        window = list_[i: i + num_condense]
-        new_data = [list_[i][2], 0, 0, 0]
-        for row in window:
-            new_data[1] += float(row[3])
-            new_data[2] += float(row[4])
-            new_data[3] += float(row[5])
-        new_data[1] /= num_condense
-        new_data[2] /= num_condense
-        new_data[3] /= num_condense
+    training_raw = read_csv('training_window.csv')
+    train_data = [[float(row[1]), float(row[2]), float(row[3])] for row in training_raw]
+    testing_raw = read_csv('testing_window.csv')
+    test_data = [[float(row[1]), float(row[2]), float(row[3])] for row in testing_raw]
+    hmm = GMMEmissionHMM(3, 3)
+    hmm.train(train_data)
+    train = hmm.viterbi(train_data)
+    test = hmm.viterbi(test_data)
+    print train[1], '\n' * 20, test[1]
+    print 'training score:', train[0]
+    print 'testing score:', test[0]
 
-        new_data[1] = str(new_data[1])
-        new_data[2] = str(new_data[2])
-        new_data[3] = str(new_data[3])
+def test2():
+    training_data = read_csv('training_window.csv')
+    start = dt(2015, 3, 24, 10, 28, 20, 500000)
+    end = dt(2015, 3, 24, 10, 28, 49, 500000)
+    walking_data = data_window(training_data, start, end, 20) # 30 second walk
+    graph_fftn(walking_data)
 
-        ret.append(new_data)
-    write_csv(out_file, ret)
+    start2 = dt(2015, 3, 24, 10, 27, 17, 500000)
+    end2 = dt(2015, 3, 24, 10, 27, 47, 500000)
+    standing_data = data_window(training_data, start2, end2, 20)
+    graph_fftn(standing_data)
 
+    start3 = dt(2015, 3, 24, 10, 30, 59, 500000)
+    end3 = dt(2015, 3, 24, 10, 31, 12, 500000)
+    upstairs_data = data_window(training_data, start3, end3, 20)
+    graph_fftn(upstairs_data)
 
-def datetime_object(string):
-    """Converts a formatted string into a DT object. Formatted like in_data.csv.
-    
-    Arguments:
-    string -- the string to be converted.
-    """
-    return dt.strptime(string + '000', '%Y-%m-%d %H:%M:%S.%f') # +'000' is ms -> micro s
-def data_window(data, start, end, resolution):
-    """Extracts a window of data from a larger data list.
+    start4 = dt(2015, 3, 24, 10, 31, 22, 500000)
+    end4 = dt(2015, 3, 24, 10, 31, 45, 500000)
+    downstairs_data = data_window(training_data, start4, end4, 20)
+    graph_fftn(downstairs_data)
 
-    Arguments:
-    data -- the larger data list.
-    start -- the datetime object that begins the window.
-    end -- the datetime object that ends the window.
-    resolution -- the length of one step in the data, in ms.
-    Returns sublist of data sliced from start to end.
-    """
-    first = datetime_object(data[0][0])
-    start_delta = start - first
-    millis_to_start = start_delta.microseconds / 1000 # time in ms between these datetimes
-    start_index = millis_to_start / resolution
-    assert start_index == int(start_index) # index has to be integer
-    end_delta = end - first
-    millis_to_end= end_delta.microseconds / 1000
-    end_index = millis_to_end / resolution
-    assert end_index == int(end_index)
-    return data[start_index : end_index]
-
-start = dt(2015, 3, 24, 10, 27, 17, 500000)
-end = dt(2015, 3, 24, 10, 44, 40, 500000)
-annotated_window = data_window(read_csv('out_data_200ms.csv'),  start, end, 200)
-write_csv('annotated_window.csv', annotated_window)
-
-
+def test3():
+    training_data = read_csv('training_window.csv')
+    start = dt(2015, 3, 24, 10, 28, 20, 500000)
+    end = dt(2015, 3, 24, 10, 28, 49, 500000)
+    walking_data = data_window(training_data, start, end, 20) # 30 second walk
+    freq = fftn_map(walking_data)
+    size_dict = find_peaks(freq)
+    print size_dict
+    print 50. / len(freq)
+if __name__ == "__main__":
+    test3()
