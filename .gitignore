@@ -88,6 +88,6 @@ ENV/
 # Rope project settings
 .ropeproject
 
-# out csv files
-
-out*.csv
+# created csv files
+*.csv
+!data/*.csv
