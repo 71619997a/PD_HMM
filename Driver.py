@@ -88,5 +88,10 @@ def test3():
     size_dict = find_peaks(freq)
     print size_dict
     print 50. / len(freq)
+
+def test4():
+    #tremor_data = vertical_slice(read_csv('tremor_30s.csv'), 
+    pass
+
 if __name__ == "__main__":
     test3()
