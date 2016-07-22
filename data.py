@@ -3,7 +3,7 @@ from datetime import datetime as dt
 from datetime import timedelta
 from copy import deepcopy as copy
 import numpy as np
-
+from detect_peaks import detect_peaks
 def datetime_object(string, micro=True):
     """Converts a formatted string into a DT object. Formatted like in_data.csv.
     
@@ -136,4 +136,27 @@ def eliminate_zeroes(data, index=1):
             del data[i]
             i -= 1
         i += 1
+
+def grouped_peakify(grouped_data, num_peaks=3, init_mph=20, mpd=15, force_num_peaks=True, bin_size = 1./30, min_frequency = 1./3):
+    """Grouped data in the format outputted by FFT.fft_window, i.e.
+    [[[z,z,z...],[y,y,y,y...],[x,x,x...]],...]
+    """
+    # 0. Trim ends of data
+    min_pt = int(min_frequency / bin_size) + 1 # ceiling
+    max_pt = len(grouped_data[0][0]) / 2 + 1 # ceiling
+    peakified = []
+    for i in grouped_data: # [[zzz],[yyy],[xxx]]
+        peakified.append([]) # to hold [ppp],[ppp],[ppp]
+        for dim in i: # [zzz]
+            usable = dim[min_pt : max_pt]
+            mph = init_mph
+            peaks = []
+            while(len(peaks) < num_peaks && force_num_peaks):
+                peaks = detect_peaks(usable, mph=mph, mpd=mpd)
+                mph -= 1
+            sorted_top_peaks = sorted(peaks, key=lambda index : -usable[index])[:num_peaks] # - to sort fr top down
+            # [zzzz...] -> [peak,peak,peak]
+            peakified[i].append(sorted_top_peaks)
+        # we now have [[ppp],[ppp],[ppp]]
+    return peakified
 
