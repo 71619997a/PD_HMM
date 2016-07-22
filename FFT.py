@@ -1,8 +1,11 @@
 import numpy as np
 from numpy.linalg import norm
 from numpy import absolute as mag
-from scipy.fftpack import fftn
+from scipy.fftpack import fftn, fft
+from scipy.signal import find_peaks_cwt 
 import matplotlib.pyplot as plot
+from data import group_data
+from detect_peaks import detect_peaks
 
 def graph_fftn(data):
     trimmed_date = np.rot90(np.rot90(data)[:3], 3) # rotate, kill date, rerotate
@@ -33,30 +36,16 @@ def fftn_map(data):
         fft_list[i] += magnitudes[i]
     return fft_list[1:]
 
+def fft_window(data, group_size): # DO NOT use column for data, USE VERTICAL SLICE
+    """Makes windows of FFT'd data, end data is [[[z,z,z...],[y,y,y,y...],[x,x,x...]],...]"""
+    # Step 0: group data
+    grouped_data = group_data(data, group_size)
 
-def find_peaks(frequencies, starting_threshold=50, base=20, num_peaks=6):
-    # frequencies should be in frequency space (i.e. fftn_map'd)
-    size_dictionary = {} # dict of size:frequency
-    i = -1
-    while i < len(frequencies) / 2:
-        i += 1
-        pt = frequencies[i]
-        if pt[1] > starting_threshold:
-            print 1 
-            start = i
-            while frequencies[start][1] > base: start -= 1
-            print 2
-            end = i
-            while frequencies[end][1] > base: end += 1
-            print 3
-            magnitudes = zip(*(frequencies[start:end]))[1]
-            size = np.sum(magnitudes) 
-            size_dictionary[size] = magnitudes.index(max(magnitudes)) + start
-            # start is the offest of list magnitudes relative to frequencies
-            i = end
-    sort = sorted(size_dictionary)
-    key_list = sort[-num_peaks:]
-    ret = {}
-    for i in key_list:
-        ret[i] = size_dictionary[i]
-    return ret
+    # Step 1: FFT each group
+    grouped_fft_data = []
+    for i in grouped_data:
+        rot = np.rot90(i)
+        fftd = [fft(seq) for seq in rot]
+        magnitudes = [[mag(j) for j in seq] for seq in fftd]
+        grouped_fft_data.append(magnitudes) 
+    return grouped_fft_data

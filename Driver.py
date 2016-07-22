@@ -2,60 +2,23 @@
 from random import random
 from datetime import datetime as dt
 import numpy as np
-from GMMEmissionHMM import GMMEmissionHMM
-from CSVIO import *
-from FFT import *
-from data import *
-
+import CSVIO
+from hmmlearn.hmm import GMMHMM, GaussianHMM
 np.set_printoptions(threshold=np.inf)
 
-def test0():
-    """Tests GMMEmissionHMM class."""
-    hmm = GMMEmissionHMM(3, 3)
+def test1():
+    """Tests GMMHMM class."""
+    hmm = GMMHMM(3, 3)
     rand_train = lambda: [random() * 6, random() * 4 + 1, random() * 10 - 2]
     train_seq = [rand_train() for i in range(3000)]  # 3000 triplets
-    hmm.train(train_seq)
+    hmm.fit(train_seq)
     print hmm
 
     prac_seq = [rand_train() for i in range(20)]
-    print hmm.viterbi(prac_seq)
+    print hmm.decode(prac_seq)
 
     score_seq = [rand_train() for i in range(5)]
     print hmm.score(score_seq)
-
-def test1():
-    """states:
-    0. rest
-    1. standing
-    2. walking
-        normal
-        counting
-        narrow
-    3. up stairs
-    4. down stairs
-    5. left finger to nose
-    6. right finger to nose
-    7. alternating RH movement
-    8. alternating LH movement
-    9. writing
-    10. typing
-    11. assembling
-    12. drinking
-    13. organize
-    14. folding
-    15. sitting
-    """
-    training_raw = read_csv('training_window.csv')
-    train_data = [[float(row[1]), float(row[2]), float(row[3])] for row in training_raw]
-    testing_raw = read_csv('testing_window.csv')
-    test_data = [[float(row[1]), float(row[2]), float(row[3])] for row in testing_raw]
-    hmm = GMMEmissionHMM(3, 3)
-    hmm.train(train_data)
-    train = hmm.viterbi(train_data)
-    test = hmm.viterbi(test_data)
-    print train[1], '\n' * 20, test[1]
-    print 'training score:', train[0]
-    print 'testing score:', test[0]
 
 def test2():
     training_data = read_csv('training_window.csv')
@@ -90,8 +53,36 @@ def test3():
     print 50. / len(freq)
 
 def test4():
-    #tremor_data = vertical_slice(read_csv('tremor_30s.csv'), 
+    # lists of data in these csvs
+    x = [float(i) for i in column(read_csv('tremor_30s.csv'), 1)]
+    y = [float(i) for i in column(read_csv('activity_level_fixed.csv'), 2)]
+    print np.corrcoef(x, y)
+    plot.scatter(x, y)
+    plot.plot(x, np.poly1d(np.polyfit(x, y, 1))(x), 'r-') # line of best fit
+    plot.show()
+
+def test5():
+    activeset = column(read_csv('activity_level_fixed.csv'), 2) # only the activity data numbers
+    numset = [float(i) for i in activeset]
+    train, test = numset[:len(numset) / 2], numset[len(numset) / 2:]
+
+    hmm = GMMHMM(3, 3, n_init=10000)
+    hmm.fit(np.reshape(train, (-1, 1))) # required bc data has only 1 feature
+    print 'train done'
+    print hmm.decode(np.reshape(test, (-1, 1)))
+
+def test6():
+    tremorset = column(read_csv('tremor_score_fixed.csv'), 2) # only the tremor data numbers
+    numset = [float(i) for i in tremorset]
+    train, test = numset[:len(numset) / 2], numset[len(numset) / 2:]
+
+    hmm = GMMHMM(3, 3, n_init=10000)
+    hmm.fit(np.reshape(train, (-1, 1))) # required bc data has only 1 feature
+    print 'train done'
+    print hmm.decode(np.reshape(test, (-1, 1)))
+
+def test7():
     pass
 
 if __name__ == "__main__":
-    test3()
+    print repr([[1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9]])
